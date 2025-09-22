@@ -1,0 +1,27 @@
+# docker-compose.yml - Corrected version
+version: '3.8'
+
+services:
+  k8s-nlq-system:
+    build: .
+    container_name: k8s-nlq-system
+    ports:
+      - "8501:8501"
+    environment:
+      # AWS Credentials - will use from host environment or .env file
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-haiku-20240307-v1:0}
+    volumes:
+      # Mount kubeconfig from host - CRITICAL for K8s access
+      - ~/.kube:/home/appuser/.kube:ro
+      # Optional: Mount AWS credentials if you prefer file-based auth
+      # - ~/.aws:/home/appuser/.aws:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
