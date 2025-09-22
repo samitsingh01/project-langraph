@@ -1,0 +1,57 @@
+# Simple CI/CD Pipeline for K8s NL Query System
+name: Deploy K8s NL Query System
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Setup Kubernetes Cluster
+      run: |
+        echo "Creating Kubernetes cluster..."
+        chmod +x script.sh
+        ./script.sh
+        
+    - name: Install Docker Compose
+      run: |
+        echo "Installing Docker Compose..."
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.21.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        
+    - name: Set Permissions
+      run: |
+        echo "Setting permissions..."
+        sudo chmod 644 ~/.kube/config
+        sudo usermod -aG docker $USER
+        newgrp docker
+        
+    - name: Create Environment File
+      run: |
+        echo "Creating .env file..."
+        cat > .env << EOF
+        AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION=${{ vars.AWS_REGION }}
+        BEDROCK_MODEL_ID=${{ vars.BEDROCK_MODEL_ID }}
+        STREAMLIT_SERVER_PORT=8501
+        STREAMLIT_SERVER_ADDRESS=0.0.0.0
+        EOF
+        
+    - name: Deploy Application
+      run: |
+        echo "Deploying application..."
+        docker-compose up --build -d
+        
+    - name: Check Status
+      run: |
+        echo "Application deployed successfully!"
+        docker-compose ps
+        echo "Access at: http://$(curl -s ifconfig.me):8501"
