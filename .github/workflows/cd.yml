@@ -37,7 +37,6 @@ jobs:
         echo "Setting permissions..."
         sudo chmod 644 ~/.kube/config
         sudo usermod -aG docker $USER
-        newgrp docker
         
     - name: Create Environment File
       run: |
@@ -54,7 +53,7 @@ jobs:
     - name: Deploy Application
       run: |
         echo "Deploying application..."
-        docker-compose up --build -d
+        sg docker -c "docker-compose up --build -d"
         
     - name: Check Status
       run: |
